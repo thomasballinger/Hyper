@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 import requests
 import threading
 
-
 class Scraper(object):
 	extension_map = {
 		'audio/mpeg' : 'mp3',
