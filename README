@@ -1,0 +1,7 @@
+HYPER
+
+Modules required: BeautifulSoup, requests, threading
+
+Queries are taken through arguments after the method call. If there is no query attached, the search will default to the trending songs at 'hypem.com/popular'
+
+
