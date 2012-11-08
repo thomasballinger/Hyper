@@ -1,39 +1,29 @@
 #!/usr/bin/env python
 from __future__ import division
-import sys
-import json
-import time
+import sys, json, time, threading, urlparse
 
-from bs4 import BeautifulSoup
 import requests
-import threading
+from bs4 import BeautifulSoup
 
 class Scraper(object):
-	extension_map = {
-		'audio/mpeg' : 'mp3',
-	}
+	extension_map = {'audio/mpeg' : 'mp3'}
 
 	def __init__(self, path='popular/'):
-		self.path = path
-		self.get_songs()
+		self.get_songs(path)
 
-	def get_page(self):
+	def get_page(self, path):
 		headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.15 (KHTML, like Gecko) Chrome/24.0.1295.0 Safari/537.15'}
 		self.session = requests.session()
-		req = self.session.get('http://www.hypem.com/'+self.path, headers=headers)
+		req = self.session.get(urlparse.urljoin('http://www.hypem.com/', path), headers=headers)
 		return req.text
 
-	def get_songs(self):
-		results = BeautifulSoup(self.get_page())
-		song_map = {}
-		page_data = json.loads(results.find('script', id='displayList-data').get_text())['tracks']
-		self.song_list = []
-		for i, track in enumerate(page_data):
-			song = {}
-			atts_we_want = ['artist', 'key', 'id', 'song']
-			song = {att: track[att] for att in atts_we_want}
-			song['rank'] = i + 1
-			self.song_list.append(song)
+	def get_songs(self, path):
+		results = BeautifulSoup(self.get_page(path))
+		song_dicts = json.loads(results.find('script', id='displayList-data').get_text())['tracks']
+		self.song_list = song_dicts
+		for i, track in enumerate(song_dicts):
+		    track
+            track['rank'] = i + 1
 
 	def request_song_url(self, song):
 		host = 'http://hypem.com/serve/source/'
