@@ -6,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 
 class Scraper(object):
+    """Gets list of songs that could be downloaded"""
     extension_map = {'audio/mpeg' : 'mp3'}
 
     def __init__(self, path='popular/'):
@@ -19,39 +20,35 @@ class Scraper(object):
 
     def get_songs(self, path):
         results = BeautifulSoup(self.get_page(path))
-        song_dicts = json.loads(results.find('script', id='displayList-data').get_text())['tracks']
-        self.song_list = song_dicts
-        for i, track in enumerate(song_dicts):
-            track
-            track['rank'] = i + 1
+        self.song_list = json.loads(results.find('script', id='displayList-data').get_text())['tracks']
+        [track.__setitem__('rank', i + 1) for i, track in enumerate(self.song_list)]
 
     def request_song_url(self, song):
         host = 'http://hypem.com/serve/source/'
-        sid = song['id']
-        key = song['key']
-        t = str(int(time.time()*1000))
-        request = host + sid + '/' + key + '?_=' + t
+        sid, key = song['id'], song['key']
+        request = urlparse.urljoin(host, sid + '/' +  key + '?_=' + str(int(time.time()*1000)))
         headers = {
             'X-Requested-With':'XMLHttpRequest',
             'Referer':'http://hypem.com/popular',
             'Host':'hypem.com',
         }
-        response = self.session.get(request, headers=headers)
-        if response.status_code == 404:
+        for i in range(3):
+            response = self.session.get(request, headers=headers)
+            if response.status_code != 404:
+                break
             time.sleep(1)
-            if self.session.get(request, headers=headers).status_code == 404:
-                raise requests.HTTPError
+        else:
+            raise requests.HTTPError
         return response.json['url']
 
-    #filer
     def get_song_file(self, song):
+        """Returns song file object, used as 'filer' in thread"""
         return self.session.get(self.request_song_url(song), prefetch=False), song['song']
 
-    #saver
     def save_file(self, resp, filename, updater=None):
-        ext = self.extension_map[resp.headers['content-type']]
+        """Returns song file object, used as 'saver' """
         size = int(resp.headers['content-length'])
-        f = open(filename + '.' + ext, 'w')
+        f = open(filename + '.' + self.extension_map[resp.headers['content-type']], 'w')
         bytes_read = 0
         while bytes_read < size:
             data = resp.raw.read(min(1024*64, size-bytes_read))
